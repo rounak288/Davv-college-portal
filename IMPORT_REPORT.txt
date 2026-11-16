@@ -1,0 +1,8 @@
+Source workbook: Student list for college Email ID(1).xlsx
+Imported student accounts: 67
+Missing required fields: 0
+Duplicate roll numbers: 0
+Duplicate emails: 0
+Invalid email formats: 0
+Non-10-digit contact numbers: 0
+Admin accounts: 1
