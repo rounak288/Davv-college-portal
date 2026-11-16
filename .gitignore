@@ -1,8 +1,1 @@
-.venv/
-__pycache__/
-*.pyc
-.env
-*.db
-*.sqlite
-*.sqlite3
-*.xlsx
+.venv/\n__pycache__/\n*.py[cod]\n.env\n.DS_Store\n*.db\n*.sqlite\n*.sqlite3\n

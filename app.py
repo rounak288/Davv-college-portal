@@ -1,4 +1,5 @@
-import os, sqlite3, hashlib, hmac, base64, secrets, csv, io
+import os, hashlib, hmac, base64, secrets, csv, io
+from db_backend import db, init_postgres_schema, is_integrity_error
 from pathlib import Path
 from datetime import date
 from functools import wraps
@@ -6,16 +7,13 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 from werkzeug.utils import secure_filename
 
 ROOT=Path(__file__).resolve().parent
-DB=ROOT/"data"/"davv_events.db"
 UPLOADS=ROOT/"static"/"uploads"
 UPLOADS.mkdir(exist_ok=True,parents=True)
 app=Flask(__name__)
-app.secret_key=os.environ.get("SECRET_KEY","dev-only-change-this-secret-before-deployment")
+app.secret_key=os.environ.get("SECRET_KEY", "local-development-only-change-before-deploy")
 app.config["MAX_CONTENT_LENGTH"]=5*1024*1024
 ALLOWED={"jpg","jpeg","png","webp"}
 
-def db():
- c=sqlite3.connect(DB); c.row_factory=sqlite3.Row; c.execute("PRAGMA foreign_keys=ON"); return c
 
 def verify(pw,stored):
  try:
@@ -59,7 +57,7 @@ def login():
  if user():return redirect(url_for("dashboard"))
  if request.method=="POST":
   email=request.form.get("identity","").strip().lower(); pw=request.form.get("password","")
-  with db() as c:u=c.execute("select * from users where email=? collate nocase and is_active=1",(email,)).fetchone()
+  with db() as c:u=c.execute("select * from users where lower(email)=lower(?) and is_active=1",(email,)).fetchone()
   if u and verify(pw,u["password_hash"]):
    session.clear();session["uid"]=u["id"]
    return redirect(url_for("admin") if u["role"]=="admin" else url_for("dashboard"))
@@ -112,7 +110,10 @@ def register(eid):
      c.execute("insert into registrations(event_id,user_id) values(?,?)",(eid,u["id"]))
      c.execute("insert into notifications(user_id,event_id,title,message) values(?,?,?,?)",(u["id"],eid,"Registration confirmed",f"You are registered for {e['title']}."))
      flash("Registration confirmed.","success")
-    except sqlite3.IntegrityError:flash("You are already registered.","info")
+    except Exception as exc:
+     if not is_integrity_error(exc):
+      raise
+     flash("You are already registered.","info")
  return redirect(url_for("event_detail",eid=eid))
 
 @app.route("/notifications")
@@ -195,4 +196,7 @@ def forbidden(e):return render_template("error.html",code=403,message="You do no
 @app.errorhandler(404)
 def missing(e):return render_template("error.html",code=404,message="That page could not be found."),404
 
-if __name__=="__main__":app.run(host="127.0.0.1",port=5000,debug=True)
+init_postgres_schema()
+
+if __name__=="__main__":
+ app.run(host="127.0.0.1",port=int(os.environ.get("PORT", 5000)),debug=os.environ.get("FLASK_DEBUG") == "1")

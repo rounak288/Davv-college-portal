@@ -1,6 +1,6 @@
 # DAVV College Event Portal
 
-Flask + SQLite event management portal for DAVV, Indore.
+Flask event management portal for DAVV, Indore. Uses SQLite for local development and managed PostgreSQL for production.
 
 ## Included
 - Login-only access; no public sign-up.
@@ -41,6 +41,9 @@ Open http://127.0.0.1:5000
 
 ## Student login
 Use the email address as the login ID and the matching contact number as the password. No password update is required. The admin demo login remains `admin@davv.edu.in` / `Admin@123`.
+
+## Production deployment
+See [DEPLOY_RENDER.md](DEPLOY_RENDER.md) for PostgreSQL migration and Render deployment steps.
 
 ## Deployment warning
 The included SQLite database is pre-populated and works for a local demonstration. Many cloud hosting services use ephemeral filesystems, so SQLite data can be lost on redeploy/restart and may not be shared reliably across multiple instances. For a real online multi-user deployment, migrate the database to managed PostgreSQL before launch. Do not commit the database or spreadsheet to a public GitHub repository: they contain personal student information. Keep the DB in a private/local demo copy or provide it securely as a deployment secret/seed process.
