@@ -1,51 +1,59 @@
-# DAVV College Event Portal
+# SDSF Events
 
-Flask event management portal for DAVV, Indore. Uses SQLite for local development and managed PostgreSQL for production.
+A Flask-based campus event management portal for the **School of Data Science and Forecasting (SDSF), Devi Ahilya Vishwavidyalaya, Indore**. It uses SQLite for local development and managed PostgreSQL in production.
 
-## Included
+## Features
+
 - Login-only access; no public sign-up.
-- 67 student accounts imported from the supplied Excel workbook.
-- Student username: email ID; initial password: corresponding contact number.
-- Passwords stored as salted PBKDF2-SHA256 hashes (not plaintext).
-- No forced password change; students sign in directly with their email ID and matching contact number.
+- Student accounts are provisioned by the administration.
+- Student login ID: college email address; initial password: matching contact number.
+- Passwords stored as salted PBKDF2-SHA256 hashes.
 - Separate admin dashboard, event creation, publishing, unpublishing and deletion.
-- Event cover photo upload or external image URL.
+- Event cover image upload or external image URL.
 - Student event discovery, category filtering, search, event details and registration.
-- In-portal notifications for new published events and registration confirmations.
-- Responsive, image-rich campus event interface.
+- In-portal notifications for event announcements and registration confirmations.
+- Brevo transactional email confirmation after successful event registration.
+- SDSF identity and supplied institutional logo throughout the interface.
 
-## Default admin credentials
-- Login ID: `admin@davv.edu.in`
-- Initial password: `Admin@123`
-- Admin password remains `Admin@123` for the local demo.
+## Local setup (Ubuntu)
 
-## Run on Windows CMD
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python app.py
+```
+
+Open http://127.0.0.1:5000.
+
+## Local setup (Windows CMD)
+
 ```bat
-cd DAVV_College_Event_Portal
 py -m venv .venv
 .venv\Scripts\activate
 py -m pip install -r requirements.txt
 py app.py
 ```
-Open http://127.0.0.1:5000
 
-## Run on Ubuntu
-```bash
-cd DAVV_College_Event_Portal
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements.txt
-python app.py
-```
-Open http://127.0.0.1:5000
-
-## Student login
-Use the email address as the login ID and the matching contact number as the password. No password update is required. The admin demo login remains `admin@davv.edu.in` / `Admin@123`.
+Open http://127.0.0.1:5000.
 
 ## Production deployment
-See [DEPLOY_RENDER.md](DEPLOY_RENDER.md) for PostgreSQL migration and Render deployment steps.
 
-## Deployment warning
-The included SQLite database is pre-populated and works for a local demonstration. Many cloud hosting services use ephemeral filesystems, so SQLite data can be lost on redeploy/restart and may not be shared reliably across multiple instances. For a real online multi-user deployment, migrate the database to managed PostgreSQL before launch. Do not commit the database or spreadsheet to a public GitHub repository: they contain personal student information. Keep the DB in a private/local demo copy or provide it securely as a deployment secret/seed process.
+See [DEPLOY_RENDER.md](DEPLOY_RENDER.md). For registration email configuration, see [EMAIL_SETUP.md](EMAIL_SETUP.md).
 
-Set a strong `SECRET_KEY` environment variable in production. Use HTTPS. Change the default admin password. Use only images you have permission to publish.
+## Required production environment variables
+
+- `DATABASE_URL`: Render PostgreSQL Internal Database URL.
+- `SECRET_KEY`: long random Flask session secret.
+- `BREVO_API_KEY`: private Brevo API key.
+- `BREVO_SENDER_EMAIL`: email sender verified in Brevo.
+- `BREVO_SENDER_NAME`: `SDSF Events`.
+
+Never commit `.env`, database URLs, API keys, secret keys, student spreadsheets or SQLite databases to GitHub. The ZIP intentionally excludes the local student database. The production PostgreSQL database was imported separately.
+
+## Security and operations
+
+- Keep the GitHub repository private.
+- Use HTTPS and a strong, private `SECRET_KEY`.
+- Rotate any credentials that have been exposed.
+- Render's ordinary filesystem is ephemeral. Uploaded event images in `static/uploads/` may not persist across redeploys; use externally hosted image URLs or persistent object storage for production.
