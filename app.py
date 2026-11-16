@@ -140,30 +140,76 @@ def admin():
   students=c.execute("select roll_number,name,email,contact_number from users where role='student' order by roll_number").fetchall()
  return render_template("admin.html",stats=stats,events=events,students=students)
 
-@app.route("/admin/event/new",methods=["GET","POST"])
+@app.route("/admin/event/new", methods=["GET", "POST"])
 @required("admin")
 def new_event():
- if request.method=="POST":
-  title=request.form.get("title","").strip();cat=request.form.get("category","").strip()
-  desc=request.form.get("description","").strip();dt=request.form.get("event_date","").strip()
-  tm=request.form.get("event_time","").strip();venue=request.form.get("venue","").strip()
-  imgurl=request.form.get("image_url","").strip();deadline=request.form.get("registration_deadline","").strip() or None
-  capraw=request.form.get("capacity","").strip();cap=int(capraw) if capraw.isdigit() else None
-  published=1 if request.form.get("is_published")=="on" else 0
-  file=request.files.get("image_file")
-  if file and file.filename and allowed(file.filename):
-   filename=secrets.token_hex(6)+"_"+secure_filename(file.filename);file.save(UPLOADS/filename)
-   imgurl=url_for("static",filename="uploads/"+filename)
-  if not all([title,cat,desc,dt,venue]):flash("Complete all required fields.","error");return render_template("event_form.html")
-  with db() as c:
-   cur=c.execute("""insert into events(title,category,description,event_date,event_time,venue,image_url,registration_deadline,capacity,is_published,created_by)
-   values(?,?,?,?,?,?,?,?,?,?,?)""",(title,cat,desc,dt,tm,venue,imgurl,deadline,cap,published,user()["id"]))
-   if published:
-    rows=c.execute("select id from users where role='student' and is_active=1").fetchall()
-    c.executemany("insert into notifications(user_id,event_id,title,message) values(?,?,?,?)",
-    [(r["id"],cur.lastrowid,"New event announced",f"{title} is now live on the DAVV events portal.") for r in rows])
-  flash("Event saved.","success");return redirect(url_for("admin"))
- return render_template("event_form.html")
+    if request.method == "POST":
+        title = request.form.get("title", "").strip()
+        cat = request.form.get("category", "").strip()
+        desc = request.form.get("description", "").strip()
+        dt = request.form.get("event_date", "").strip()
+        tm = request.form.get("event_time", "").strip()
+        venue = request.form.get("venue", "").strip()
+        imgurl = request.form.get("image_url", "").strip()
+        deadline = request.form.get("registration_deadline", "").strip() or None
+        capraw = request.form.get("capacity", "").strip()
+        cap = int(capraw) if capraw.isdigit() else None
+        published = 1 if request.form.get("is_published") == "on" else 0
+
+        file = request.files.get("image_file")
+        if file and file.filename and allowed(file.filename):
+            filename = secrets.token_hex(6) + "_" + secure_filename(file.filename)
+            file.save(UPLOADS / filename)
+            imgurl = url_for("static", filename="uploads/" + filename)
+
+        if not all([title, cat, desc, dt, venue]):
+            flash("Complete all required fields.", "error")
+            return render_template("event_form.html")
+
+        with db() as c:
+            cur = c.execute(
+                """
+                INSERT INTO events (
+                    title, category, description, event_date, event_time,
+                    venue, image_url, registration_deadline, capacity,
+                    is_published, created_by
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                RETURNING id
+                """,
+                (
+                    title, cat, desc, dt, tm, venue, imgurl,
+                    deadline, cap, published, user()["id"]
+                ),
+            )
+            event_id = cur.fetchone()["id"]
+
+            if published:
+                rows = c.execute(
+                    "SELECT id FROM users WHERE role='student' AND is_active=1"
+                ).fetchall()
+
+                c.executemany(
+                    """
+                    INSERT INTO notifications(user_id, event_id, title, message)
+                    VALUES (?, ?, ?, ?)
+                    """,
+                    [
+                        (
+                            row["id"],
+                            event_id,
+                            "New event announced",
+                            f"{title} is now live on the DAVV events portal.",
+                        )
+                        for row in rows
+                    ],
+                )
+
+        flash("Event saved.", "success")
+        return redirect(url_for("admin"))
+
+    return render_template("event_form.html")
+
 
 @app.post("/admin/event/<int:eid>/toggle")
 @required("admin")
