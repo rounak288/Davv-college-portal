@@ -8,15 +8,22 @@ DB_PATH = ROOT / "data" / "davv_events.db"
 
 
 def _hybrid_row(cursor):
+    if cursor.description is None:
+        return tuple
+
     columns = [col.name for col in cursor.description]
+
     class HybridRow(dict):
         def __getitem__(self, key):
             if isinstance(key, int):
                 key = columns[key]
             return super().__getitem__(key)
+
     def make_row(values):
         return HybridRow(zip(columns, values))
+
     return make_row
+
 
 
 class PostgresCompat:
@@ -40,7 +47,9 @@ class PostgresCompat:
         return self.conn.execute(sql.replace("?", "%s"), params)
 
     def executemany(self, sql, params):
-        return self.conn.executemany(sql.replace("?", "%s"), params)
+        with self.conn.cursor() as cursor:
+      	    cursor.executemany(sql.replace("?", "%s"), params)
+      	    return cursor.rowcount
 
 
 def database_url():
